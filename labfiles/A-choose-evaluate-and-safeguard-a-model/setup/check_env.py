@@ -1,9 +1,16 @@
 """
 Preflight check for the Wingtip Journeys "Choose, evaluate, and safeguard a model" lab.
 
+WORKING DIRECTORY: run this from the lab folder --
+    labfiles/A-choose-evaluate-and-safeguard-a-model
+so the path below is "setup/check_env.py". Unlike the companion chat-app lab,
+this lab has no python/ code folder and no virtual environment: the script uses
+only the Python standard library, so it runs on a clean Python install.
+
 Each task in this lab can be completed on its own. Before you start a task, run this
 script to confirm you have what that task needs:
 
+    cd labfiles/A-choose-evaluate-and-safeguard-a-model
     python setup/check_env.py --task 6
 
 Every task in this lab is completed in the Microsoft Foundry portal, so there is no

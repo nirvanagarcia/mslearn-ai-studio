@@ -34,11 +34,13 @@ This lab can be completed end to end **or one task at a time**. Two things make 
   (one page per task). Each task page tells a standalone learner exactly what it needs.
 - **A setup script** in `labfiles/B-build-a-generative-ai-chat-app/setup/`:
   - `check_env.py --task N` — preflight-checks that `.env` has the keys task *N* needs, and
-    (for Task 4) that the `guides/` folder is present. Run it from the `python/` folder as
+    (for Task 4) that the `guides/` folder is present. Run it from the **starter**
+    `labfiles/B-build-a-generative-ai-chat-app/python/` folder (**not** `Solution/python/`) as
     `python ../setup/check_env.py --task N`.
 
 The script is run from the **starter** `python/` folder and uses the shared virtual environment
-and `.env`.
+and `.env`. There is no `setup/` folder inside `Solution/`, so `../setup/...` only resolves
+from the starter tree.
 
 ---
 
@@ -59,7 +61,7 @@ The companion lab,
 walks through steps 1–4 in detail.
 
 ### 2. Set up the environment once (shared by all tasks)
-From the `python/` folder:
+From `Solution/python/` (or the starter `python/` folder if you're running the learner's copy):
 ```
 python -m venv labenv
 .\labenv\Scripts\Activate.ps1        # Windows PowerShell
@@ -77,7 +79,7 @@ Sign in with the same account that has access to the project. A missing or expir
 is the most common cause of an authentication error on the first prompt.
 
 ### 4. Run each task
-All commands run from the single `python/` folder:
+All commands run from the single `Solution/python/` folder:
 
 | Task | Command | What you get |
 |------|---------|--------------|
@@ -95,8 +97,15 @@ you're finished with the lab.
 ---
 
 ## Quick sanity checks that DON'T need Azure
-- `python -m py_compile chat-app.py chat-async.py tools-app.py` — all solution files compile.
-- From the `python/` folder: `python ../setup/check_env.py --help` runs cleanly with no network
-  access, and works even before you `pip install -r requirements.txt`.
-- `python -c "import glob; print(len(glob.glob('guides/*.md')))"` from `python/` should print
-  **5** — the number of guides Task 4 uploads.
+
+> In this section, `Solution/python/` means the folder this README sits next to. The one
+> command that reaches outside it is called out explicitly, because `Solution/` has no
+> `setup/` folder of its own.
+
+- From `Solution/python/`: `python -m py_compile chat-app.py chat-async.py tools-app.py` — all
+  solution files compile.
+- From `Solution/python/`: `python -c "import glob; print(len(glob.glob('guides/*.md')))"`
+  should print **5** — the number of guides Task 4 uploads.
+- From the **starter** `python/` folder (**not** `Solution/python/`):
+  `python ../setup/check_env.py --help` runs cleanly with no network access, and works even
+  before you `pip install -r requirements.txt`.

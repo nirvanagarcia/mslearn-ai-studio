@@ -1,11 +1,17 @@
 """
 Preflight check for the Wingtip Journeys "Build a generative AI chat app" lab.
 
-Each task in this lab can be completed on its own. Before you start a task,
-run this script to confirm your .env file has everything that task needs.
-Run it from the `python` folder you work in, with your virtual environment
-active:
+WORKING DIRECTORY: run this from the STARTER code folder --
+    labfiles/B-build-a-generative-ai-chat-app/python
+which is the folder you opened a terminal in and created your virtual
+environment in. From there the script is one level up, so the path is
+"../setup/check_env.py". There is no setup/ folder inside Solution/, so
+this does NOT work from Solution/python.
 
+Each task in this lab can be completed on its own. Before you start a task,
+run this script to confirm your .env file has everything that task needs:
+
+    cd labfiles/B-build-a-generative-ai-chat-app/python
     python ../setup/check_env.py --task 2
 
 It never changes anything - it only reads your .env (and, for Task 4, the local
