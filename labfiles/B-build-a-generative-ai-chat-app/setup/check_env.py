@@ -30,22 +30,50 @@ import argparse
 import os
 from pathlib import Path
 
+
+def _parse_env_file(path):
+    """Minimal .env reader used when python-dotenv isn't importable.
+
+    Matches dotenv.dotenv_values for the syntax a lab .env can contain:
+    blank lines and # comments are skipped, an "export " prefix is stripped,
+    a key with no "=" maps to None, quoted values keep any # inside the
+    quotes, and an unquoted value drops a trailing " #" comment.
+    """
+    values = {}
+    with open(path, encoding="utf-8") as handle:
+        for raw_line in handle:
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("export "):
+                line = line[len("export "):].lstrip()
+            if "=" not in line:
+                values[line] = None
+                continue
+            key, _, value = line.partition("=")
+            value = value.strip()
+            if len(value) >= 2 and value[0] in "\"'" and value[-1] == value[0]:
+                # Fully quoted: take the contents verbatim.
+                value = value[1:-1]
+            elif value[:1] in ('"', "'"):
+                # Opening quote with text after the closing quote (a trailing comment).
+                quote = value[0]
+                end = value.find(quote, 1)
+                value = value[1:end] if end != -1 else value[1:]
+            else:
+                # Unquoted: a " #" starts a trailing comment.
+                value = value.split(" #", 1)[0].rstrip()
+            values[key.strip()] = value
+    return values
+
+
 try:
     from dotenv import dotenv_values
 except ImportError:
     # python-dotenv lives in the lab's virtual environment. This check should still
-    # work if you run it before "pip install -r requirements.txt", so fall back to a
-    # minimal reader that handles the simple KEY=value lines a lab .env contains.
-    def dotenv_values(path):
-        values = {}
-        with open(path, encoding="utf-8") as handle:
-            for line in handle:
-                line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                key, _, value = line.partition("=")
-                values[key.strip()] = value.strip().strip('"').strip("'")
-        return values
+    # work if you run it before "pip install -r requirements.txt", so fall back to
+    # the equivalent stdlib reader defined above.
+    dotenv_values = _parse_env_file
 
 
 KNOWN_KEYS = ("AZURE_OPENAI_ENDPOINT", "MODEL_DEPLOYMENT")
