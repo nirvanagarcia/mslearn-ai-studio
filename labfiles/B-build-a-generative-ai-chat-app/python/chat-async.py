@@ -10,6 +10,9 @@ async def main():
     # Clear the console
     os.system('cls' if os.name == 'nt' else 'clear')
 
+    # Declared here so the finally block below can always see it
+    credential = None
+
     try:
         # Get configuration settings
         load_dotenv()

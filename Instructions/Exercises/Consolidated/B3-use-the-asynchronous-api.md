@@ -100,6 +100,8 @@ such as a tool lookup running alongside the model.
     ```
 
     Keeping a reference to `credential` matters — you'll close it at the end of the function.
+    The starter file already declares `credential = None` above the `try` block, so the
+    `finally` block can always see it even if something fails before this line runs.
 
 1. In the **main** function, note that code to request a user prompt until the user quits the app has been provided, along with the `last_response_id` tracking you saw in Task 2. Within this loop, find the **Await an asynchronous response** comment, and add the following code:
 
