@@ -34,9 +34,10 @@ This lab can be completed end to end **or one task at a time**. Two things make 
   (one page per task). Each task page tells a standalone learner exactly what it needs.
 - **A setup script** in `labfiles/B-build-a-generative-ai-chat-app/setup/`:
   - `check_env.py --task N` — preflight-checks that `.env` has the keys task *N* needs, and
-    (for Task 4) that the `guides/` folder is present.
+    (for Task 4) that the `guides/` folder is present. Run it from the `python/` folder as
+    `python ../setup/check_env.py --task N`.
 
-The script runs from the **starter** `python/` folder and uses the shared virtual environment
+The script is run from the **starter** `python/` folder and uses the shared virtual environment
 and `.env`.
 
 ---
@@ -95,7 +96,7 @@ you're finished with the lab.
 
 ## Quick sanity checks that DON'T need Azure
 - `python -m py_compile chat-app.py chat-async.py tools-app.py` — all solution files compile.
-- From `labfiles/B-build-a-generative-ai-chat-app`: `python setup/check_env.py --help` runs
-  cleanly with no network access.
+- From the `python/` folder: `python ../setup/check_env.py --help` runs cleanly with no network
+  access, and works even before you `pip install -r requirements.txt`.
 - `python -c "import glob; print(len(glob.glob('guides/*.md')))"` from `python/` should print
   **5** — the number of guides Task 4 uploads.

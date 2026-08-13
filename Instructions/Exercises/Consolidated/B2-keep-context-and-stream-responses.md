@@ -26,10 +26,10 @@ lab:
 > task starts. Keep your terminal and virtual environment open and go straight to *Add
 > conversation tracking*.
 
-Verify you're ready — from the `labfiles/B-build-a-generative-ai-chat-app` folder:
+Verify you're ready — from the `python` folder, with your virtual environment active:
 
 ```
-python setup/check_env.py --task 2
+python ../setup/check_env.py --task 2
 ```
 
 ---

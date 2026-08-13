@@ -73,19 +73,31 @@ If you're jumping straight to a later task, deploy the model here:
 1. Select **Deploy** with the default settings to create a deployment of the model.
 1. Note the **deployment name** that is assigned. Several tasks ask you to identify this deployment.
 
-## Check you're ready for a task
+## Check you're ready for a task (optional)
 
-Each task in this lab needs a slightly different starting point. Before starting a task, run
-the preflight check from the `labfiles/A-choose-evaluate-and-safeguard-a-model` folder of this
-repo — it tells you exactly what that task expects:
+Every task in this lab is completed in the portal, so you don't need to clone anything to work
+through it. If you'd like a reminder of what a given task expects — and, for Task 6, a check
+that the training data is valid — clone this repo and run the preflight script.
 
-```
-python setup/check_env.py --task 4
-```
+1. In Visual Studio Code, open the Command Palette (**Ctrl+Shift+P**), run **Git: Clone**, and enter:
 
-Swap `4` for the task number you're about to start. The check reads local files only and never
-calls Azure, so it's safe to run at any time. (This lab is completed in the portal, so for most
-tasks the check simply confirms what you need to have created there.)
+    ```
+    https://github.com/MicrosoftLearning/mslearn-ai-studio.git
+    ```
+
+1. Open a terminal in the `labfiles/A-choose-evaluate-and-safeguard-a-model` folder of the cloned repo and run:
+
+    ```
+    python setup/check_env.py --task 4
+    ```
+
+Swap `4` for the task number you're about to start. The check reads local files only, never
+calls Azure, and needs no installed packages beyond Python itself, so it's safe to run at any
+time. (This lab is completed in the portal, so for most tasks the check simply confirms what
+you need to have created there.)
+
+> **Task 6 note**: Task 6 also gives you a direct download link for the training dataset, so
+> you can complete it without cloning the repo at all.
 
 That's it — head to any task:
 

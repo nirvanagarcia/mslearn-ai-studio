@@ -24,10 +24,10 @@ lab:
 > This task goes back to the synchronous client, so copy the imports and client setup from
 > **chat-app.py** rather than **chat-async.py**.
 
-Verify you're ready — from the `labfiles/B-build-a-generative-ai-chat-app` folder:
+Verify you're ready — from the `python` folder, with your virtual environment active:
 
 ```
-python setup/check_env.py --task 4
+python ../setup/check_env.py --task 4
 ```
 
 ---

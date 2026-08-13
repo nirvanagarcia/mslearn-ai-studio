@@ -120,11 +120,11 @@ az login
 ## Check you're ready for a task
 
 Each task needs specific values in your `.env`. Before starting a task, run the preflight
-check from the `labfiles/B-build-a-generative-ai-chat-app` folder — it reads your `.env` and
-tells you what (if anything) is missing:
+check **from the `python` folder** — the same folder your terminal and virtual environment are
+already in. It reads your `.env` and tells you what (if anything) is missing:
 
 ```
-python setup/check_env.py --task 2
+python ../setup/check_env.py --task 2
 ```
 
 Swap `2` for the task number you're about to start. That's it — head to any task:

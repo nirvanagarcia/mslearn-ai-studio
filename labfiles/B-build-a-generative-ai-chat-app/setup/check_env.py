@@ -2,9 +2,11 @@
 Preflight check for the Wingtip Journeys "Build a generative AI chat app" lab.
 
 Each task in this lab can be completed on its own. Before you start a task,
-run this script to confirm your .env file has everything that task needs:
+run this script to confirm your .env file has everything that task needs.
+Run it from the `python` folder you work in, with your virtual environment
+active:
 
-    python setup/check_env.py --task 2
+    python ../setup/check_env.py --task 2
 
 It never changes anything - it only reads your .env (and, for Task 4, the local
 destination guides) and tells you what is missing, so you can fix it before
@@ -22,7 +24,23 @@ import argparse
 import os
 from pathlib import Path
 
-from dotenv import dotenv_values
+try:
+    from dotenv import dotenv_values
+except ImportError:
+    # python-dotenv lives in the lab's virtual environment. This check should still
+    # work if you run it before "pip install -r requirements.txt", so fall back to a
+    # minimal reader that handles the simple KEY=value lines a lab .env contains.
+    def dotenv_values(path):
+        values = {}
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, value = line.partition("=")
+                values[key.strip()] = value.strip().strip('"').strip("'")
+        return values
+
 
 KNOWN_KEYS = ("AZURE_OPENAI_ENDPOINT", "MODEL_DEPLOYMENT")
 

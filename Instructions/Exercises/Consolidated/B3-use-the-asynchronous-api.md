@@ -23,10 +23,10 @@ lab:
 > open; only the file you're editing changes. It's worth opening **chat-app.py** alongside
 > **chat-async.py** so you can see the two versions side by side.
 
-Verify you're ready — from the `labfiles/B-build-a-generative-ai-chat-app` folder:
+Verify you're ready — from the `python` folder, with your virtual environment active:
 
 ```
-python setup/check_env.py --task 3
+python ../setup/check_env.py --task 3
 ```
 
 ---

@@ -17,10 +17,10 @@ lab:
 > Complete [Getting started](B0-getting-started.md) first. You also need to be signed in with
 > `az login` in the terminal you'll run from.
 
-Verify you're ready — from the `labfiles/B-build-a-generative-ai-chat-app` folder:
+Verify you're ready — from the `python` folder, with your virtual environment active:
 
 ```
-python setup/check_env.py --task 1
+python ../setup/check_env.py --task 1
 ```
 
 ---
