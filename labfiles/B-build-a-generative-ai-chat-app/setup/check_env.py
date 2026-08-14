@@ -302,6 +302,35 @@ def has_utf8_bom(env_path):
         return False
 
 
+def _looks_like_url(value):
+    """A project endpoint is always an https:// URL."""
+    return value.startswith("https://") or value.startswith("http://")
+
+
+def _looks_like_deployment_name(value):
+    """A model deployment name is a bare name - never a URL, never spaced."""
+    return not _looks_like_url(value) and not any(c.isspace() for c in value)
+
+
+# Shape rules for settings whose form is known. These catch template text
+# however it happens to be worded - a keyword list can always be out-worded,
+# but an endpoint that isn't a URL is wrong no matter what it says. They also
+# catch a learner pasting the right value into the wrong setting.
+KEY_SHAPES = {
+    "AZURE_OPENAI_ENDPOINT": (
+        _looks_like_url,
+        "This doesn't look like an endpoint - it must start with https://. Copy the "
+        "Azure OpenAI endpoint (not the project endpoint) from your project home page "
+        "in the Microsoft Foundry portal.",
+    ),
+    "MODEL_DEPLOYMENT": (
+        _looks_like_deployment_name,
+        "This doesn't look like a deployment name - it should be a bare name such as "
+        "gpt-5.2, not a URL. Check you haven't pasted the endpoint here by mistake.",
+    ),
+}
+
+
 def _looks_like_placeholder(value):
     """True only for text that is unmistakably fill-me-in.
 
@@ -368,9 +397,27 @@ def load_values(env_path):
 
 
 def is_set(values, key, placeholders=PLACEHOLDERS):
-    """A key counts as set if it's present and not a leftover placeholder."""
+    """A key counts as set if it's present, not a placeholder, and the right shape."""
     value = (values.get(key) or "").strip().strip('"')
-    return bool(value) and value not in placeholders
+    if not value or value in placeholders:
+        return False
+    shape = KEY_SHAPES.get(key)
+    return shape is None or shape[0](value)
+
+
+def wrong_shape(values, key, placeholders=PLACEHOLDERS):
+    """Message for a value that is present and not a placeholder, but malformed.
+
+    Distinguishes "you haven't filled this in" from "you filled it in with the
+    wrong thing", which are very different problems for a learner to debug.
+    """
+    value = (values.get(key) or "").strip().strip('"')
+    if not value or value in placeholders:
+        return None
+    shape = KEY_SHAPES.get(key)
+    if shape is None or shape[0](value):
+        return None
+    return f"{shape[1]} (found: {value!r})"
 
 
 def main():
@@ -461,7 +508,9 @@ def main():
     print()
     print("Fix the following before starting this task:")
     for key in missing:
-        print(f"\n  {key}\n    {FIX_HINTS.get(key, 'Add this key to your .env file.')}")
+        detail = wrong_shape(values, key, placeholders) or FIX_HINTS.get(
+            key, "Add this key to your .env file.")
+        print(f"\n  {key}\n    {detail}")
     if guides_problem is not None:
         print(f"\n  guides/\n    {guides_problem}")
     if bom_problem is not None:
