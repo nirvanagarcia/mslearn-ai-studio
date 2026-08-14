@@ -302,20 +302,40 @@ def has_utf8_bom(env_path):
         return False
 
 
+def _looks_like_placeholder(value):
+    """True only for text that is unmistakably fill-me-in.
+
+    Deliberately conservative. A .env.example may legitimately ship a working
+    default (a real model name, say), and treating that as a placeholder would
+    block a learner who correctly kept it. So only obvious markers count.
+    """
+    lowered = value.strip().lower()
+    if not lowered:
+        return True
+    if lowered.startswith("<") and lowered.endswith(">"):
+        return True
+    if "your" in lowered or "your-" in lowered:
+        return True
+    return lowered in {"changeme", "change-me", "change_me", "todo", "tbd",
+                       "replace", "replaceme", "replace-me", "xxx", "..."}
+
+
 def find_placeholders(env_path):
     """Placeholder values that mean "not filled in yet".
 
-    Read from the shipped .env.example next to the learner's .env, so that
-    editing .env.example can never leave this check looking for stale text and
-    reporting an untouched file as ready. Falls back to the literals above if
-    the example file isn't there.
+    Starts from the curated list above, then adds any obviously-placeholder
+    text found in the shipped .env.example, so editing that file can't leave
+    this check hunting for stale wording and calling an untouched .env ready.
+
+    Values in .env.example that don't look like placeholders are left alone --
+    a lab may ship a real working default, and that counts as set.
     """
     placeholders = set(PLACEHOLDERS)
     example = env_path.parent / ".env.example"
     if example.exists():
         try:
             for value in _parse_env_file(example).values():
-                if value:
+                if value and _looks_like_placeholder(value):
                     placeholders.add(value)
         except OSError:
             pass
