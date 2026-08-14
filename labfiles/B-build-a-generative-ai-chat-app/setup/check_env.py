@@ -31,22 +31,49 @@ import os
 from pathlib import Path
 
 
-def _find_closing_quote(text, quote, start=0):
-    """Index of the next closing `quote` in `text`, ignoring backslash-escaped ones.
+def _find_closing_quote(text, quote, start=0, raw=False):
+    """Index of the next closing `quote` in `text`.
 
-    Only double quotes honour escapes, matching dotenv: inside single quotes a
-    backslash is a literal character, so \\' still closes the value.
+    By default a backslash-escaped quote does not close the value, which is what
+    dotenv does when a value parses successfully: "say \\"hi\\" there" is one
+    string, not a value ending at the first \\".
+
+    Pass raw=True to ignore escapes and stop at the very next occurrence of the
+    character. dotenv falls back to that behaviour while recovering from a value
+    whose quote is never closed, so an escaped quote further down the file still
+    terminates the runaway value.
     """
     index = start
     while index < len(text):
         char = text[index]
-        if char == "\\" and quote == '"' and index + 1 < len(text):
+        if not raw and char == "\\" and quote == '"' and index + 1 < len(text):
             index += 2
             continue
         if char == quote:
             return index
         index += 1
     return -1
+
+
+def _scan_for_close(lines, first_body, quote, next_index):
+    """Extend a value line by line until `quote` closes it.
+
+    Returns (body, end, index). `end` is -1 if the quote never closes. Escapes are
+    honoured first; if that finds no close anywhere, the scan is retried raw,
+    matching dotenv's recovery.
+    """
+    for raw in (False, True):
+        body = first_body
+        index = next_index
+        end = _find_closing_quote(body, quote, raw=raw)
+        while end == -1 and index < len(lines):
+            resume = len(body) + 1
+            body += "\n" + lines[index]
+            index += 1
+            end = _find_closing_quote(body, quote, resume, raw=raw)
+        if end != -1:
+            return body, end, index
+    return first_body, -1, next_index
 
 
 def _decode_double_quoted(value):
@@ -120,13 +147,7 @@ def _parse_env_file(path, problems=None):
             values[key] = value.split(" #", 1)[0].rstrip()
             continue
 
-        body = value[1:]
-        end = _find_closing_quote(body, quote)
-        while end == -1 and index < len(lines):
-            resume = len(body) + 1
-            body += "\n" + lines[index]
-            index += 1
-            end = _find_closing_quote(body, quote, resume)
+        body, end, index = _scan_for_close(lines, value[1:], quote, index)
 
         if end == -1:
             # Never closed, even at EOF. dotenv drops this binding and carries
