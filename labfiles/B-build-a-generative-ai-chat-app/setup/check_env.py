@@ -337,21 +337,34 @@ def main():
         )
 
     quote_problem = None
+    quote_warning = None
     quote_problems = find_quote_problems(env_path) if env_path.exists() else []
     if quote_problems:
         for line_number, key, _ in quote_problems:
-            print(f"  [PROBLEM] .env line {line_number}: unterminated quote ({key})")
+            mark = "PROBLEM" if missing else "WARNING"
+            print(f"  [{mark}] .env line {line_number}: unterminated quote ({key})")
         first_line, first_key, _ = quote_problems[0]
-        quote_problem = (
-            f"Line {first_line} opens a quote that is never closed, so {first_key} is "
-            "dropped - and depending on where the next quote appears, the settings after "
-            "it can be swallowed into that value and dropped too. That's why a setting "
-            "can look correct in the file and still read as empty. Close the quote (or "
-            "remove both quotes) on that line."
+        explanation = (
+            f"Line {first_line} opens a quote that is never closed. {first_key} is dropped, "
+            "and if a later line contains a matching quote, every setting in between is "
+            "swallowed into that value and dropped too. That's why a setting can look "
+            "correct in the file and still read as empty. Close the quote (or remove both "
+            "quotes) on that line."
         )
+        if missing:
+            # Something this task needs is absent, and bad quoting is the likely cause.
+            quote_problem = explanation
+        else:
+            # Everything this task needs was still readable, so don't block on it --
+            # the app will run. Say it anyway, because another setting is being lost.
+            quote_warning = explanation
 
     if not missing and guides_problem is None and bom_problem is None and quote_problem is None:
         print()
+        if quote_warning is not None:
+            print("Warning: your .env has a quoting problem, but every setting this task")
+            print("needs was still readable, so you can continue.")
+            print(f"\n  .env quoting\n    {quote_warning}\n")
         print(f"You're ready to start Task {args.task}.")
         return 0
 
