@@ -83,7 +83,14 @@ def check_jsonl(path):
         return False, "not found"
 
     line_count = 0
-    with path.open(encoding="utf-8") as handle:
+    # utf-8-sig so a BOM (added by some editors when re-saving the downloaded
+    # dataset) is consumed instead of making line 1 fail to parse as JSON.
+    try:
+        handle = path.open(encoding="utf-8-sig")
+    except OSError as error:
+        return False, f"could not be read ({error.strerror or error})"
+
+    with handle:
         for line_number, line in enumerate(handle, start=1):
             line = line.strip()
             if not line:
