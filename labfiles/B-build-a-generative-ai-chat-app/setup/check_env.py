@@ -135,6 +135,15 @@ def _parse_env_file(path, problems=None):
 
     Either way the entry is dropped rather than guessed at, and the line number
     is appended to `problems` so the caller can explain the real cause.
+
+    INTENTIONAL DIVERGENCE FROM DOTENV -- do not "fix" this to match:
+    the file is opened utf-8-sig, so a leading BOM is consumed. dotenv does NOT
+    strip it, and parses the first key as "\\ufeffKEY" instead. Matching dotenv
+    here would make this parser byte-identical on a BOM'd file, which is exactly
+    why parser parity cannot be the safety property for a BOM -- a "don't strip
+    the BOM" mutation scores as MORE dotenv-identical, not less. BOM safety comes
+    from has_utf8_bom() below, which reports it and forces a non-zero exit no
+    matter which parser is in use.
     """
     with open(path, encoding="utf-8-sig") as handle:
         lines = handle.read().splitlines()
@@ -210,6 +219,9 @@ TASK_REQUIREMENTS = {
 TASKS_NEEDING_GUIDES = {4}
 
 # Placeholder text shipped in .env.example - present but not yet filled in.
+# The literals below are a fallback; find_placeholders() also reads the real
+# .env.example at runtime, so editing that file can't silently leave this list
+# stale and start reporting an untouched .env as ready.
 PLACEHOLDERS = {
     "",
     "your_azure_openai_endpoint",
@@ -290,6 +302,26 @@ def has_utf8_bom(env_path):
         return False
 
 
+def find_placeholders(env_path):
+    """Placeholder values that mean "not filled in yet".
+
+    Read from the shipped .env.example next to the learner's .env, so that
+    editing .env.example can never leave this check looking for stale text and
+    reporting an untouched file as ready. Falls back to the literals above if
+    the example file isn't there.
+    """
+    placeholders = set(PLACEHOLDERS)
+    example = env_path.parent / ".env.example"
+    if example.exists():
+        try:
+            for value in _parse_env_file(example).values():
+                if value:
+                    placeholders.add(value)
+        except OSError:
+            pass
+    return placeholders
+
+
 def load_values(env_path):
     """Merge real environment variables over .env file values (env wins).
 
@@ -315,10 +347,10 @@ def load_values(env_path):
     return values
 
 
-def is_set(values, key):
+def is_set(values, key, placeholders=PLACEHOLDERS):
     """A key counts as set if it's present and not a leftover placeholder."""
     value = (values.get(key) or "").strip().strip('"')
-    return bool(value) and value not in PLACEHOLDERS
+    return bool(value) and value not in placeholders
 
 
 def main():
@@ -336,16 +368,17 @@ def main():
 
     env_path = find_env_file()
     values = load_values(env_path)
+    placeholders = find_placeholders(env_path)
     required = TASK_REQUIREMENTS[args.task]
 
     print(f"Checking readiness for Task {args.task}")
     print(f"Reading: {env_path}{'' if env_path.exists() else '  (not found yet)'}")
     print()
 
-    missing = [key for key in required if not is_set(values, key)]
+    missing = [key for key in required if not is_set(values, key, placeholders)]
 
     for key in required:
-        mark = "OK " if is_set(values, key) else "MISSING"
+        mark = "OK " if is_set(values, key, placeholders) else "MISSING"
         print(f"  [{mark}] {key}")
 
     guides_problem = None
