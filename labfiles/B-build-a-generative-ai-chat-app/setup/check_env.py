@@ -34,9 +34,10 @@ from pathlib import Path
 def _find_closing_quote(text, quote, start=0, raw=False):
     """Index of the next closing `quote` in `text`.
 
-    By default a backslash-escaped quote does not close the value, which is what
-    dotenv does when a value parses successfully: "say \\"hi\\" there" is one
-    string, not a value ending at the first \\".
+    By default a backslash-escaped quote does not close the value. This applies
+    to BOTH quote characters: dotenv treats \\' inside a single-quoted value as
+    an escaped quote, not a terminator. (Note this is asymmetric with decoding,
+    where single quotes only ever decode \\' and leave other escapes literal.)
 
     Pass raw=True to ignore escapes and stop at the very next occurrence of the
     character. dotenv falls back to that behaviour while recovering from a value
@@ -46,7 +47,7 @@ def _find_closing_quote(text, quote, start=0, raw=False):
     index = start
     while index < len(text):
         char = text[index]
-        if not raw and char == "\\" and quote == '"' and index + 1 < len(text):
+        if not raw and char == "\\" and index + 1 < len(text):
             index += 2
             continue
         if char == quote:
@@ -76,12 +77,27 @@ def _scan_for_close(lines, first_body, quote, next_index):
     return first_body, -1, next_index
 
 
+def _decode_single_quoted(value):
+    """Decode a single-quoted value the way dotenv does.
+
+    Only the quote and the backslash are escapable: \\' becomes ' and \\\\ becomes
+    a single backslash. Everything else stays literal, so '\\n' is a backslash
+    followed by n, not a newline.
+    """
+    return _decode_escapes(value, {"'": "'", "\\": "\\"})
+
+
 def _decode_double_quoted(value):
-    """Apply the backslash escapes python-dotenv honours inside double quotes."""
-    escapes = {
+    """Apply the backslash escapes dotenv honours inside double quotes."""
+    return _decode_escapes(value, {
         "\\": "\\", "'": "'", '"': '"', "a": "\a", "b": "\b",
         "f": "\f", "n": "\n", "r": "\r", "t": "\t", "v": "\v",
-    }
+    })
+
+
+def _decode_escapes(value, escapes):
+    """Replace known backslash escapes; leave unknown ones (and a trailing
+    backslash) exactly as written, which is what dotenv does."""
     out = []
     index = 0
     while index < len(value):
@@ -166,7 +182,7 @@ def _parse_env_file(path, problems=None):
             continue
 
         body = body[:end]
-        values[key] = _decode_double_quoted(body) if quote == '"' else body
+        values[key] = _decode_double_quoted(body) if quote == '"' else _decode_single_quoted(body)
 
     return values
 
