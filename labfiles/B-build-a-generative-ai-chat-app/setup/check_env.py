@@ -68,7 +68,7 @@ def _decode_double_quoted(value):
     return "".join(out)
 
 
-def _parse_env_file(path):
+def _parse_env_file(path, problems=None):
     """Minimal .env reader used when python-dotenv isn't importable.
 
     Matches dotenv.dotenv_values for the syntax a lab .env can contain:
@@ -77,15 +77,21 @@ def _parse_env_file(path):
     * an "export " prefix is stripped
     * a key with no "=" maps to None
     * a quoted value keeps any # inside the quotes; an unquoted value drops a
-      trailing " #" comment, and a quoted one drops anything after the closing quote
+      trailing " #" comment
     * a value opened with a quote may span lines, and the newlines are kept
-    * an entry whose quote is never closed is DISCARDED, as dotenv does, so a
-      malformed .env is reported as missing rather than silently accepted
     * inside double quotes, backslash escapes (\\n, \\", \\\\, ...) are decoded;
       single-quoted values are raw
 
-    Opened as utf-8-sig so a Notepad-saved file's BOM is consumed rather than
-    becoming part of the first key name.
+    Malformed quoting is handled the way dotenv does, which matters because the
+    shipped apps use dotenv and so inherit its behaviour exactly:
+
+    * a quote that never closes discards ONLY that binding; parsing resumes on
+      the next line, so later settings are still read
+    * a quote that closes on a later line but leaves trailing junk discards the
+      binding AND everything it swallowed up to that closing quote
+
+    Either way the entry is dropped rather than guessed at, and the line number
+    is appended to `problems` so the caller can explain the real cause.
     """
     with open(path, encoding="utf-8-sig") as handle:
         lines = handle.read().splitlines()
@@ -93,6 +99,7 @@ def _parse_env_file(path):
     values = {}
     index = 0
     while index < len(lines):
+        opened_at = index
         line = lines[index].strip()
         index += 1
         if not line or line.startswith("#"):
@@ -116,14 +123,27 @@ def _parse_env_file(path):
         body = value[1:]
         end = _find_closing_quote(body, quote)
         while end == -1 and index < len(lines):
-            # Quote still open: keep taking whole lines, preserving the newlines.
             resume = len(body) + 1
             body += "\n" + lines[index]
             index += 1
             end = _find_closing_quote(body, quote, resume)
+
         if end == -1:
-            # Never closed, even at EOF: drop the entry, matching dotenv.
+            # Never closed, even at EOF. dotenv drops this binding and carries
+            # on from the line after the one that opened the quote.
+            if problems is not None:
+                problems.append((opened_at + 1, key, "unterminated quote"))
+            index = opened_at + 1
             continue
+
+        trailing = body[end + 1:].strip()
+        if trailing and not trailing.startswith("#"):
+            # Closed, but with junk after the closing quote: dotenv discards the
+            # binding and everything it swallowed getting there.
+            if problems is not None:
+                problems.append((opened_at + 1, key, "unterminated quote"))
+            continue
+
         body = body[:end]
         values[key] = _decode_double_quoted(body) if quote == '"' else body
 
@@ -200,6 +220,22 @@ def find_guides_folder():
         if candidate.is_dir():
             return candidate
     return here.parent / "python" / "guides"
+
+
+def find_quote_problems(env_path):
+    """Line numbers of malformed quotes in the .env, whichever parser is in use.
+
+    Always uses the local reader, because python-dotenv reports these to stderr
+    rather than returning them, and the learner needs to be told which line to
+    fix. dotenv silently drops the affected settings, so without this the
+    preflight would just say a key is missing and never say why.
+    """
+    problems = []
+    try:
+        _parse_env_file(env_path, problems=problems)
+    except OSError:
+        return []
+    return problems
 
 
 def has_utf8_bom(env_path):
@@ -300,7 +336,21 @@ def main():
             "then 'UTF-8' (not 'UTF-8 with BOM')."
         )
 
-    if not missing and guides_problem is None and bom_problem is None:
+    quote_problem = None
+    quote_problems = find_quote_problems(env_path) if env_path.exists() else []
+    if quote_problems:
+        for line_number, key, _ in quote_problems:
+            print(f"  [PROBLEM] .env line {line_number}: unterminated quote ({key})")
+        first_line, first_key, _ = quote_problems[0]
+        quote_problem = (
+            f"Line {first_line} opens a quote that is never closed, so {first_key} is "
+            "dropped - and depending on where the next quote appears, the settings after "
+            "it can be swallowed into that value and dropped too. That's why a setting "
+            "can look correct in the file and still read as empty. Close the quote (or "
+            "remove both quotes) on that line."
+        )
+
+    if not missing and guides_problem is None and bom_problem is None and quote_problem is None:
         print()
         print(f"You're ready to start Task {args.task}.")
         return 0
@@ -313,6 +363,8 @@ def main():
         print(f"\n  guides/\n    {guides_problem}")
     if bom_problem is not None:
         print(f"\n  .env encoding\n    {bom_problem}")
+    if quote_problem is not None:
+        print(f"\n  .env quoting\n    {quote_problem}")
     return 1
 
 
